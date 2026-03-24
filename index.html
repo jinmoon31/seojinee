@@ -3,78 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내 조용한 기록들</title>
+    <title>나의 조용한 기록들</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 아날로그/타자기 감성을 위한 Monospace 폰트 설정 */
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&family=Noto+Sans+KR:wght@300;400&display=swap');
         
         body { 
-            /* 따뜻한 종이 질감 색상 */
             background-color: #fdfcfb; 
             color: #1a1a1a;
             font-family: 'Noto Sans KR', sans-serif;
         }
         .mono { font-family: 'Courier Prime', monospace; }
         
-        /* 일기장 줄글 느낌의 언더라인 */
         .diary-entry {
             border-bottom: 1px dotted #e0e0e0;
             padding-bottom: 2rem;
             margin-bottom: 2rem;
         }
+        input, textarea { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; width: 100%; font-size: 0.9rem; outline: none; }
+        button { background: #1a1a1a; color: white; padding: 10px 24px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.3s; font-weight: 600; }
+        button:hover { background: #444; }
     </style>
 </head>
 <body class="antialiased">
 
     <header class="max-w-2xl mx-auto px-6 py-16 text-center">
-        <h1 class="mono text-2xl font-bold tracking-tight text-slate-900">
-            _my personal log
-        </h1>
-        <p class="text-xs text-slate-400 mt-2 mono">last updated: 2026.03.15</p>
+        <h1 class="mono text-2xl font-bold tracking-tight text-slate-900">_my personal log</h1>
+        <p class="text-[10px] text-slate-300 mt-2 mono uppercase tracking-widest">securely stored in database</p>
     </header>
 
     <main class="max-w-2xl mx-auto px-6 pb-24">
         
-        <article class="diary-entry">
-            <div class="flex items-center gap-4 mb-4">
-                <span class="mono text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">260315</span>
-                <h2 class="text-lg font-medium">프로필 만들기</h2>
+        <section class="mb-16 bg-white p-8 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-slate-50">
+            <div class="space-y-4">
+                <input type="text" id="nickname" placeholder="오늘의 키워드" class="mono">
+                <textarea id="content" rows="3" placeholder="남기고 싶은 생각을 적어보세요..."></textarea>
+                <div class="text-right">
+                    <button onclick="saveLog()" id="saveBtn">기록하기</button>
+                </div>
             </div>
-            <p class="text-slate-600 leading-relaxed font-light text-sm">
-                AI한테 홈페이지 만들어달라고 했더니 너무 거창하게 짜줘서 오그라들었다. 
-                그냥 내 생각이나 가끔 적는 조용한 공간이면 족한데. 
-                결국 다 덜어내고 이렇게 줄글만 남겼다. 이 편이 훨씬 마음이 편하다.
-            </p>
-        </article>
+        </section>
 
-        <article class="diary-entry">
-            <div class="flex items-center gap-4 mb-4">
-                <span class="mono text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">260312</span>
-                <h2 class="text-lg font-medium">연구와 노이즈</h2>
-            </div>
-            <p class="text-slate-600 leading-relaxed font-light text-sm">
-                오늘 트레바리 모임에서 의료 AI 노이즈 이야기를 했다. 
-            
-            </p>
-        </article>
-
-        <article class="diary-entry border-none">
-            <div class="flex items-center gap-4 mb-4">
-                <span class="mono text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">260310</span>
-                <h2 class="text-lg font-medium">취미생활</h2>
-            </div>
-            <p class="text-slate-600 leading-relaxed font-light text-sm">
-                간만에 골프나가는데 내일 잘했으면 좋겠다
-                그래도 날씨가 좋아서 다행이었다.
-            </p>
-        </article>
+        <div id="log-container">
+            <p class="text-center text-slate-300 py-10">불러오는 중...</p>
+        </div>
 
     </main>
 
-    <footer class="text-center pb-16 text-xs text-slate-300 mono">
-        .. end of log ..
-    </footer>
+    <script>
+        const SUPABASE_URL = 'https://daflibnfwaijftbfdxoq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZmxpYm5md2FpamZ0YmZkeG9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNTA5MzYsImV4cCI6MjA4OTkyNjkzNn0.rFNEJ7jnBfHj4ADL9Yttc8s4PfZHUjQU0l6BFdfSdfc';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        async function fetchLogs() {
+            const { data, error } = await _supabase
+                .from('comments')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) { console.error('Error:', error); return; }
+
+            const container = document.getElementById('log-container');
+            container.innerHTML = '';
+
+            data.forEach(log => {
+                const date = new Date(log.created_at).toLocaleDateString('ko-KR', {
+                    year: '2-digit', month: '2-digit', day: '2-digit'
+                }).replace(/\. /g, '').replace('.', '');
+
+                container.innerHTML += `
+                    <article class="diary-entry">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="mono text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">${date}</span>
+                            <h2 class="text-sm font-semibold text-slate-700">${log.nickname}</h2>
+                        </div>
+                        <p class="text-slate-600 leading-relaxed font-light text-[13px] whitespace-pre-wrap">${log.content}</p>
+                    </article>
+                `;
+            });
+        }
+
+        async function saveLog() {
+            const nickname = document.getElementById('nickname').value;
+            const content = document.getElementById('content').value;
+            const btn = document.getElementById('saveBtn');
+
+            if (!nickname || !content) { alert('내용을 채워주세요.'); return; }
+
+            btn.disabled = true;
+            btn.innerText = '기록 중...';
+
+            const { error } = await _supabase
+                .from('comments')
+                .insert([{ nickname, content }]);
+
+            if (error) {
+                alert('저장에 실패했습니다.');
+            } else {
+                document.getElementById('nickname').value = '';
+                document.getElementById('content').value = '';
+                fetchLogs();
+            }
+            btn.disabled = false;
+            btn.innerText = '기록하기';
+        }
+
+        fetchLogs();
+    </script>
 </body>
 </html>
